@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CardBack.Application/CardBack.Application.csproj" />
+  <Project Path="CardBack.Domain/CardBack.Domain.csproj" />
+  <Project Path="CardBack.Infrastructure/CardBack.Infrastructure.csproj" />
+  <Project Path="CardBack/CardBack.Api.csproj" />
+</Solution>

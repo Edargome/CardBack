@@ -1,0 +1,6 @@
+@CardBack_HostAddress = http://localhost:5256
+
+GET {{CardBack_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
