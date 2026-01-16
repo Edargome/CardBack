@@ -117,17 +117,10 @@ app.UseCors("frontend");
 // Seed usuarios precargados
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    await db.Database.OpenConnectionAsync();
-    var cmd = db.Database.GetDbConnection().CreateCommand();
-    cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
-    using var r = await cmd.ExecuteReaderAsync();
-
-    Console.WriteLine("[DB] Tables:");
-    while (await r.ReadAsync())
-        Console.WriteLine(" - " + r.GetString(0));
+    var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
+    await seeder.SeedAsync();
 }
+
 
 static Guid GetUserId(HttpContext ctx)
 {
