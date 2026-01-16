@@ -7,6 +7,7 @@ public sealed class AppDbContext : DbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Card> Cards => Set<Card>();
+    public DbSet<Transaction> Transactions => Set<Transaction>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -67,6 +68,36 @@ public sealed class AppDbContext : DbContext
         // Índices útiles
         card.HasIndex(x => new { x.UserId, x.IsActive });
         card.HasIndex(x => x.Token).IsUnique();
+
+        var tx = modelBuilder.Entity<Transaction>();
+        tx.ToTable("Transactions");
+
+        tx.HasKey(x => x.Id);
+
+        tx.Property(x => x.UserId).IsRequired();
+        tx.Property(x => x.CardId).IsRequired();
+
+        tx.Property(x => x.Amount)
+          .HasColumnType("decimal(18,2)")
+          .IsRequired();
+
+        tx.Property(x => x.Currency)
+          .HasMaxLength(3)
+          .IsRequired();
+
+        tx.Property(x => x.Description)
+          .HasMaxLength(200)
+          .IsRequired(false);
+
+        tx.Property(x => x.Status)
+          .HasConversion<int>()
+          .IsRequired();
+
+        tx.Property(x => x.CreatedAt)
+          .IsRequired();
+
+        tx.HasIndex(x => new { x.UserId, x.CreatedAt });
+        tx.HasIndex(x => new { x.CardId, x.CreatedAt });
 
     }
 }

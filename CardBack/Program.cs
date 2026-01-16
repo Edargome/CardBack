@@ -3,6 +3,7 @@ using CardBack.Application.Ports;
 using CardBack.Infrastructure.Persistence;
 using CardBack.Infrastructure.Security;
 using CardBack.Infrastructure.Seed;
+using CardBack.Application.Transactions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -65,6 +66,9 @@ builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICardRepository, CardRepository>();
 builder.Services.AddScoped<CardService>();
 
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<TransactionService>();
+
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<DbSeeder>();
 
@@ -90,6 +94,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+//CORS
+builder.Services.AddCors(opt =>
+{
+    opt.AddPolicy("frontend", p =>
+        p.WithOrigins("http://localhost:5173")
+         .AllowAnyHeader()
+         .AllowAnyMethod());
+});
+
 var app = builder.Build();
 
 // Swagger
@@ -98,6 +111,8 @@ app.UseSwaggerUI();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseCors("frontend");
 
 // Seed usuarios precargados
 using (var scope = app.Services.CreateScope())
@@ -182,6 +197,41 @@ cardsGroup.MapDelete("/{id:guid}", async (HttpContext ctx, Guid id, CardService 
     return Results.NoContent();
 })
 .WithName("DeleteCard");
+
+var txGroup = app.MapGroup("/transactions")
+    .WithTags("Transactions")
+    .RequireAuthorization();
+
+txGroup.MapPost("/", async (HttpContext ctx, CreateTransactionRequest req, TransactionService svc, CancellationToken ct) =>
+{
+    var userId = GetUserId(ctx); // el helper que ya tienes para NameIdentifier/sub
+    var created = await svc.PayAsync(userId, req, ct);
+    return Results.Created($"/transactions/{created.Id}", created);
+})
+.WithName("CreateTransaction");
+
+txGroup.MapGet("/", async (HttpContext ctx, string? from, string? to, TransactionService svc, CancellationToken ct) =>
+{
+    var userId = GetUserId(ctx);
+
+    DateTimeOffset? fromDt = DateTimeOffset.TryParse(from, out var f) ? f : null;
+    DateTimeOffset? toDt = DateTimeOffset.TryParse(to, out var t) ? t : null;
+
+    var list = await svc.HistoryAsync(userId, fromDt, toDt, ct);
+    return Results.Ok(list);
+})
+.WithName("ListTransactions");
+
+// opcional: por tarjeta
+app.MapGet("/cards/{cardId:guid}/transactions", async (HttpContext ctx, Guid cardId, TransactionService svc, CancellationToken ct) =>
+{
+    var userId = GetUserId(ctx);
+    var list = await svc.HistoryByCardAsync(userId, cardId, ct);
+    return Results.Ok(list);
+})
+.WithTags("Transactions")
+.RequireAuthorization()
+.WithName("ListTransactionsByCard");
 
 
 app.Run();
