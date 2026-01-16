@@ -1,6 +1,5 @@
 ﻿using CardBack.Application.Ports;
 using CardBack.Domain.Entities;
-using CardBack.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace CardBack.Infrastructure.Persistence;
